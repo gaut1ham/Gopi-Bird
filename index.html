@@ -1,0 +1,838 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>GOPI Bird</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0e29, #000000);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            color: #00ff00;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+
+        /* Platform Detection Class */
+        .desktop .tap-hint { display: none !important; }
+        .mobile .desktop-only { display: none !important; }
+        .tablet .game-area { max-height: 70vh !important; }
+
+        /* Game Container - Responsive */
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            min-width: 300px;
+            height: auto;
+            max-height: 90vh;
+            background: #0a0a0a;
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+        }
+
+        /* Game Header */
+        .game-header {
+            background: linear-gradient(to right, #001122, #003344);
+            color: #00ff00;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            height: 70px;
+        }
+
+        .game-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+            font-weight: 700;
+            color: #00ffff;
+        }
+
+        .game-title i {
+            color: #00ff00;
+            animation: pulse 2s infinite;
+        }
+
+        .score-container {
+            font-size: clamp(1rem, 2vw, 1.3rem);
+            font-weight: bold;
+            background: rgba(0, 50, 0, 0.3);
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #00ff00;
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.3);
+            min-width: clamp(100px, 20vw, 120px);
+            text-align: center;
+        }
+
+        .high-score {
+            color: #00ffff;
+            font-size: clamp(0.7rem, 1.5vw, 0.8rem);
+            margin-top: 3px;
+        }
+
+        /* Game Area - Responsive */
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: calc(min(600px, 60vh));
+            background: linear-gradient(to bottom, #001133, #000a1a);
+            overflow: hidden;
+            cursor: pointer;
+            border-left: 1px solid rgba(0, 255, 0, 0.1);
+            border-right: 1px solid rgba(0, 255, 0, 0.1);
+        }
+
+        /* Platform-specific controls hints */
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #00ffff;
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            background: rgba(0, 20, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: 1px solid #00ffff;
+            z-index: 25;
+            text-align: center;
+            animation: pulseHint 2s infinite;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .desktop .controls-hint::before {
+            content: "🖱️ CLICK or 🎮 SPACE";
+        }
+
+        .mobile .controls-hint::before {
+            content: "👆 TAP TO FLY";
+        }
+
+        .tablet .controls-hint::before {
+            content: "👆 TAP or 🎮 SPACE";
+        }
+
+        @keyframes pulseHint {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Bird - Responsive */
+        .bird {
+            position: absolute;
+            width: clamp(30px, 6vw, 40px);
+            height: clamp(21px, 4.2vw, 28px);
+            left: clamp(40px, 10vw, 60px);
+            background-image: url('image.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 10;
+            transform-origin: center;
+            filter: drop-shadow(0 0 5px #00ff00) hue-rotate(90deg);
+        }
+
+        /* Pipes - Responsive */
+        .pipe {
+            position: absolute;
+            width: clamp(45px, 8vw, 60px);
+            background: linear-gradient(to right, #002200, #004400);
+            border-left: 2px solid #00ff00;
+            border-right: 2px solid #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .pipe-top {
+            border-top: 2px solid #00ff00;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+
+        .pipe-bottom {
+            border-bottom: 2px solid #00ff00;
+            border-bottom-left-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+
+        /* Game Messages */
+        .game-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 20, 0, 0.95);
+            color: #00ff00;
+            padding: clamp(20px, 4vw, 25px);
+            border-radius: 10px;
+            text-align: center;
+            z-index: 30;
+            width: 90%;
+            max-width: 400px;
+            border: 2px solid #00ff00;
+            box-shadow: 0 0 40px rgba(0, 255, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        .game-message h2 {
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            margin-bottom: 15px;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .btn {
+            background: linear-gradient(to bottom, #003300, #001100);
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: clamp(10px, 2vw, 12px) clamp(20px, 4vw, 25px);
+            font-size: clamp(1rem, 2vw, 1.1rem);
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            min-width: clamp(100px, 25vw, 150px);
+            min-height: 44px;
+            touch-action: manipulation;
+            transition: all 0.2s;
+        }
+
+        .btn:hover, .btn:active {
+            background: linear-gradient(to bottom, #004400, #002200);
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+
+        /* Controls Panel */
+        .controls {
+            background: rgba(0, 20, 0, 0.8);
+            padding: 15px;
+            border-top: 1px solid #00ff00;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            min-height: 60px;
+        }
+
+        .platform-controls {
+            display: flex;
+            gap: 15px;
+            font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+        }
+
+        .platform-controls div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .audio-controls button {
+            background: rgba(0, 50, 0, 0.3);
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+            min-height: 36px;
+            touch-action: manipulation;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 768px) {
+            .game-container {
+                max-width: 95vw;
+            }
+            
+            .game-area {
+                height: calc(min(500px, 65vh));
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .platform-controls {
+                justify-content: center;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .game-header {
+                padding: 10px 15px;
+                height: 60px;
+            }
+            
+            .game-area {
+                height: calc(min(400px, 70vh));
+            }
+            
+            .controls-hint {
+                bottom: 10px;
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                padding: 12px 20px;
+                min-width: 120px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .game-container {
+                max-width: 600px;
+            }
+            
+            .game-area {
+                height: 650px;
+            }
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Prevent text selection */
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body class="desktop">
+    <div class="game-container">
+        <div class="game-header">
+            <div class="game-title">
+                <i class="fas fa-terminal"></i>
+                <span>GOPI_BIRD</span>
+            </div>
+            <div class="score-container">
+                <div>SCORE: <span id="score">0</span></div>
+                <div class="high-score">HIGH: <span id="high-score">0</span></div>
+            </div>
+        </div>
+        
+        <div class="game-area" id="game-area">
+            <div class="controls-hint"></div>
+            
+            <div class="bird" id="bird"></div>
+            <div class="ground"></div>
+            
+            <div class="game-message" id="start-message">
+                <h2>GOPI BIRD</h2>
+                <p>Cross-Platform Hacker Game</p>
+                <p id="platform-info"></p>
+                <button class="btn" id="start-btn">START GAME</button>
+                <button class="btn" id="instructions-btn">INSTRUCTIONS</button>
+            </div>
+            
+            <div class="game-message hidden" id="game-over-message">
+                <h2>GAME OVER</h2>
+                <p>Score: <span id="final-score">0</span></p>
+                <p>High Score: <span id="final-high-score">0</span></p>
+                <button class="btn" id="restart-btn">PLAY AGAIN</button>
+                <button class="btn" id="menu-btn">MAIN MENU</button>
+            </div>
+            
+            <div class="game-message hidden" id="instructions">
+                <h2>HOW TO PLAY</h2>
+                <p style="text-align: left; margin: 15px 0;">
+                    <strong>PC:</strong> Click or press SPACE<br>
+                    <strong>Mobile:</strong> Tap anywhere<br>
+                    <strong>Tablet:</strong> Tap or use SPACE<br><br>
+                    Avoid pipes, each passed pipe = 1 point<br>
+                    Game speeds up every 5 points
+                </p>
+                <button class="btn" id="close-instructions-btn">GOT IT</button>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="platform-controls">
+                <div class="desktop-only">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <span>CLICK TO FLY</span>
+                </div>
+                <div>
+                    <i class="fas fa-gamepad"></i>
+                    <span>SPACE KEY</span>
+                </div>
+                <div>
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>TAP TO FLY</span>
+                </div>
+            </div>
+            <div class="audio-controls">
+                <button id="sound-toggle">
+                    <i class="fas fa-volume-up"></i>
+                    <span>SOUND: ON</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="click-sound" preload="auto">
+        <source src="click.m4a" type="audio/mp4">
+    </audio>
+    <audio id="point-sound" preload="auto">
+        <source src="point - Made with Clipchamp.m4a" type="audio/mp4">
+    </audio>
+    <audio id="hit-sound" preload="auto">
+        <source src="gameover - Made with Clipchamp.m4a" type="audio/mp4">
+    </audio>
+
+    <script>
+        // Platform Detection
+        const detectPlatform = () => {
+            const userAgent = navigator.userAgent;
+            const body = document.body;
+            
+            // Remove all platform classes
+            body.classList.remove('desktop', 'mobile', 'tablet');
+            
+            // Detect platform
+            if (/iPad|Android(?!.*Mobile)|Tablet/i.test(userAgent)) {
+                body.classList.add('tablet');
+                return 'tablet';
+            } else if (/Mobile|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+                body.classList.add('mobile');
+                return 'mobile';
+            } else {
+                body.classList.add('desktop');
+                return 'desktop';
+            }
+        };
+
+        // Initialize platform
+        const platform = detectPlatform();
+        document.getElementById('platform-info').textContent = 
+            `Playing on: ${platform.charAt(0).toUpperCase() + platform.slice(1)}`;
+
+        // Game Variables
+        const gameArea = document.getElementById('game-area');
+        const bird = document.getElementById('bird');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('high-score');
+        const finalScoreElement = document.getElementById('final-score');
+        const finalHighScoreElement = document.getElementById('final-high-score');
+        const startMessage = document.getElementById('start-message');
+        const gameOverMessage = document.getElementById('game-over-message');
+        const instructions = document.getElementById('instructions');
+        const controlsHint = document.querySelector('.controls-hint');
+
+        // Audio Elements
+        const clickSound = document.getElementById('click-sound');
+        const pointSound = document.getElementById('point-sound');
+        const hitSound = document.getElementById('hit-sound');
+
+        // Buttons
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const menuBtn = document.getElementById('menu-btn');
+        const instructionsBtn = document.getElementById('instructions-btn');
+        const closeInstructionsBtn = document.getElementById('close-instructions-btn');
+        const soundToggle = document.getElementById('sound-toggle');
+
+        // Game State
+        let gameActive = false;
+        let score = 0;
+        let highScore = localStorage.getItem('gopiBirdHighScore') || 0;
+        let birdY = 200;
+        let birdVelocity = 0;
+        let pipes = [];
+        let clouds = [];
+        let gameLoopId;
+        let pipeTimer;
+        let soundEnabled = true;
+
+        // Platform-adjusted Game Constants
+        const GAME_WIDTH = gameArea.offsetWidth;
+        const GAME_HEIGHT = gameArea.offsetHeight;
+        
+        // Adjust values based on platform
+        const getPlatformValues = () => {
+            switch(platform) {
+                case 'mobile':
+                    return {
+                        gravity: 0.45,
+                        jumpStrength: -8.0,
+                        pipeWidth: 50,
+                        pipeGap: 180,
+                        pipeSpeed: 2.2,
+                        pipeInterval: 1900,
+                        birdSize: 30
+                    };
+                case 'tablet':
+                    return {
+                        gravity: 0.48,
+                        jumpStrength: -8.2,
+                        pipeWidth: 55,
+                        pipeGap: 200,
+                        pipeSpeed: 2.1,
+                        pipeInterval: 2000,
+                        birdSize: 35
+                    };
+                default: // desktop
+                    return {
+                        gravity: 0.5,
+                        jumpStrength: -8.5,
+                        pipeWidth: 60,
+                        pipeGap: 220,
+                        pipeSpeed: 2.0,
+                        pipeInterval: 2100,
+                        birdSize: 40
+                    };
+            }
+        };
+
+        const platformValues = getPlatformValues();
+        const GRAVITY = platformValues.gravity;
+        const JUMP_STRENGTH = platformValues.jumpStrength;
+        const PIPE_WIDTH = platformValues.pipeWidth;
+        const PIPE_GAP = platformValues.pipeGap;
+        const PIPE_SPEED = platformValues.pipeSpeed;
+        const PIPE_INTERVAL = platformValues.pipeInterval;
+        const GROUND_HEIGHT = 50;
+        const BIRD_HEIGHT = platformValues.birdSize * 0.7; // Maintain aspect ratio
+        const BIRD_WIDTH = platformValues.birdSize;
+
+        // Initialize game
+        const initGame = () => {
+            score = 0;
+            scoreElement.textContent = score;
+            birdY = GAME_HEIGHT / 3;
+            birdVelocity = 0;
+            pipes = [];
+            
+            // Reset bird
+            bird.style.top = birdY + 'px';
+            bird.style.transform = 'rotate(0deg)';
+            bird.style.left = `${GAME_WIDTH * 0.15}px`; // 15% from left
+            
+            // Clear pipes
+            document.querySelectorAll('.pipe').forEach(pipe => pipe.remove());
+            
+            // Update high score display
+            highScoreElement.textContent = highScore;
+            finalHighScoreElement.textContent = highScore;
+            
+            // Show platform-specific hint
+            controlsHint.style.display = 'block';
+        };
+
+        // Create pipe
+        const createPipe = () => {
+            if (!gameActive) return;
+            
+            const minGapFromEdge = 60;
+            const maxGapPosition = GAME_HEIGHT - GROUND_HEIGHT - PIPE_GAP - minGapFromEdge;
+            const gapPosition = Math.random() * (maxGapPosition - minGapFromEdge) + minGapFromEdge;
+            
+            // Top pipe
+            const topPipe = document.createElement('div');
+            topPipe.className = 'pipe pipe-top';
+            topPipe.style.height = gapPosition + 'px';
+            topPipe.style.left = GAME_WIDTH + 'px';
+            gameArea.appendChild(topPipe);
+            
+            // Bottom pipe
+            const bottomPipe = document.createElement('div');
+            bottomPipe.className = 'pipe pipe-bottom';
+            const bottomHeight = GAME_HEIGHT - GROUND_HEIGHT - gapPosition - PIPE_GAP;
+            bottomPipe.style.height = bottomHeight + 'px';
+            bottomPipe.style.left = GAME_WIDTH + 'px';
+            bottomPipe.style.bottom = GROUND_HEIGHT + 'px';
+            gameArea.appendChild(bottomPipe);
+            
+            pipes.push({
+                topElement: topPipe,
+                bottomElement: bottomPipe,
+                x: GAME_WIDTH,
+                topHeight: gapPosition,
+                passed: false
+            });
+        };
+
+        // Move pipes
+        const movePipes = () => {
+            const currentPipeSpeed = PIPE_SPEED + Math.floor(score / 5) * 0.2;
+            
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                const pipe = pipes[i];
+                pipe.x -= currentPipeSpeed;
+                
+                pipe.topElement.style.left = pipe.x + 'px';
+                pipe.bottomElement.style.left = pipe.x + 'px';
+                
+                if (pipe.x + PIPE_WIDTH < 0) {
+                    pipe.topElement.remove();
+                    pipe.bottomElement.remove();
+                    pipes.splice(i, 1);
+                }
+                
+                if (!pipe.passed && pipe.x + PIPE_WIDTH < GAME_WIDTH * 0.15) {
+                    pipe.passed = true;
+                    increaseScore();
+                }
+            }
+        };
+
+        // Check collisions
+        const checkCollisions = () => {
+            // Ground collision
+            if (birdY + BIRD_HEIGHT/2 >= GAME_HEIGHT - GROUND_HEIGHT) {
+                return true;
+            }
+            
+            // Ceiling collision
+            if (birdY - BIRD_HEIGHT/2 <= 0) {
+                birdY = BIRD_HEIGHT/2;
+                birdVelocity = 0;
+                return false;
+            }
+            
+            // Pipe collisions
+            const birdLeft = GAME_WIDTH * 0.15;
+            const birdRight = birdLeft + BIRD_WIDTH;
+            const birdTop = birdY - BIRD_HEIGHT/2;
+            const birdBottom = birdY + BIRD_HEIGHT/2;
+            
+            for (let pipe of pipes) {
+                const pipeLeft = pipe.x;
+                const pipeRight = pipe.x + PIPE_WIDTH;
+                
+                if (birdRight > pipeLeft && birdLeft < pipeRight) {
+                    if (birdTop < pipe.topHeight || birdBottom > (GAME_HEIGHT - GROUND_HEIGHT - (GAME_HEIGHT - GROUND_HEIGHT - pipe.topHeight - PIPE_GAP))) {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        };
+
+        // Update bird
+        const updateBird = () => {
+            birdVelocity += GRAVITY;
+            birdY += birdVelocity;
+            
+            // Rotate bird based on velocity
+            let rotation = birdVelocity * 3;
+            rotation = Math.max(-30, Math.min(90, rotation));
+            bird.style.transform = `rotate(${rotation}deg)`;
+            
+            bird.style.top = birdY + 'px';
+        };
+
+        // Jump
+        const jump = () => {
+            if (!gameActive) return;
+            
+            birdVelocity = JUMP_STRENGTH;
+            
+            // Hide hint on first jump
+            controlsHint.style.display = 'none';
+            
+            // Play sound
+            if (soundEnabled) {
+                try {
+                    clickSound.currentTime = 0;
+                    clickSound.play().catch(() => {});
+                } catch (e) {}
+            }
+        };
+
+        // Increase score
+        const increaseScore = () => {
+            score++;
+            scoreElement.textContent = score;
+            
+            if (score > highScore) {
+                highScore = score;
+                highScoreElement.textContent = highScore;
+                localStorage.setItem('gopiBirdHighScore', highScore);
+            }
+            
+            if (soundEnabled) {
+                try {
+                    pointSound.currentTime = 0;
+                    pointSound.play().catch(() => {});
+                } catch (e) {}
+            }
+        };
+
+        // Game over
+        const gameOver = () => {
+            gameActive = false;
+            clearInterval(pipeTimer);
+            cancelAnimationFrame(gameLoopId);
+            
+            finalScoreElement.textContent = score;
+            finalHighScoreElement.textContent = highScore;
+            gameOverMessage.classList.remove('hidden');
+            
+            if (soundEnabled) {
+                try {
+                    hitSound.currentTime = 0;
+                    hitSound.play().catch(() => {});
+                } catch (e) {}
+            }
+        };
+
+        // Game loop
+        const gameLoop = () => {
+            if (!gameActive) return;
+            
+            updateBird();
+            movePipes();
+            
+            if (checkCollisions()) {
+                gameOver();
+                return;
+            }
+            
+            gameLoopId = requestAnimationFrame(gameLoop);
+        };
+
+        // Start game
+        const startGame = () => {
+            initGame();
+            gameActive = true;
+            
+            startMessage.classList.add('hidden');
+            gameOverMessage.classList.add('hidden');
+            instructions.classList.add('hidden');
+            
+            pipeTimer = setInterval(createPipe, PIPE_INTERVAL);
+            gameLoop();
+        };
+
+        // Event Listeners
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', startGame);
+        
+        menuBtn.addEventListener('click', () => {
+            gameOverMessage.classList.add('hidden');
+            startMessage.classList.remove('hidden');
+            initGame();
+        });
+        
+        instructionsBtn.addEventListener('click', () => {
+            instructions.classList.remove('hidden');
+            startMessage.classList.add('hidden');
+        });
+        
+        closeInstructionsBtn.addEventListener('click', () => {
+            instructions.classList.add('hidden');
+            startMessage.classList.remove('hidden');
+        });
+        
+        // Sound toggle
+        soundToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            const icon = soundToggle.querySelector('i');
+            const text = soundToggle.querySelector('span');
+            
+            if (soundEnabled) {
+                icon.className = 'fas fa-volume-up';
+                text.textContent = 'SOUND: ON';
+            } else {
+                icon.className = 'fas fa-volume-mute';
+                text.textContent = 'SOUND: OFF';
+            }
+        });
+
+        // Input Handling - Universal
+        gameArea.addEventListener('click', (e) => {
+            e.preventDefault();
+            jump();
+        });
+        
+        gameArea.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        }, { passive: false });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                jump();
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (gameActive) {
+                gameActive = false;
+                setTimeout(() => {
+                    location.reload();
+                }, 100);
+            }
+        });
+
+        // Handle orientation change
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                location.reload();
+            }, 100);
+        });
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initGame();
+            highScoreElement.textContent = highScore;
+        });
+    </script>
+</body>
+</html>
